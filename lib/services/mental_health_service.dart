@@ -1,62 +1,248 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:wellness/models/meditation_session.dart';
 import '../models/mental_health.dart';
+import 'firebase_service.dart';
 
 class MentalHealthService {
-  static final List<MoodEntry> _moodEntries = [];
-  static final List<GratitudeEntry> _gratitudeEntries = [];
-  static final List<ChallengeProgress> _challengeProgress = [];
+  static final FirebaseFirestore _firestore = FirebaseService.firestore;
+  static final FirebaseAuth _auth = FirebaseService.auth;
 
   // Mood Tracking
-  static Future<void> addMoodEntry(MoodEntry mood) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    _moodEntries.add(mood);
+  static Future<bool> addMoodEntry(MoodEntry mood) async {
+    try {
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) return false;
+
+      await FirebaseService.getUserMentalHealth(currentUser.uid).add({
+        'type': 'mood',
+        'date': Timestamp.fromDate(mood.date),
+        'moodLevel': mood.moodLevel,
+        'moodEmoji': mood.moodEmoji,
+        'moodDescription': mood.moodDescription,
+        'notes': mood.notes,
+        'tags': mood.tags,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      return true;
+    } catch (e) {
+      print('Error adding mood entry: $e');
+      return false;
+    }
   }
 
   static Future<List<MoodEntry>> getMoodEntries() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return List.from(_moodEntries);
+    try {
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) return [];
+
+      QuerySnapshot snapshot = await FirebaseService.getUserMentalHealth(currentUser.uid)
+          .where('type', isEqualTo: 'mood')
+          .orderBy('date', descending: true)
+          .limit(50)
+          .get();
+
+      List<MoodEntry> moods = [];
+      for (var doc in snapshot.docs) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        
+        moods.add(MoodEntry(
+          id: doc.id,
+          date: (data['date'] as Timestamp).toDate(),
+          moodLevel: data['moodLevel'],
+          moodEmoji: data['moodEmoji'],
+          moodDescription: data['moodDescription'],
+          notes: data['notes'] ?? '',
+          tags: List<String>.from(data['tags'] ?? []),
+        ));
+      }
+
+      return moods;
+    } catch (e) {
+      print('Error getting mood entries: $e');
+      return [];
+    }
   }
 
   static Future<List<MoodEntry>> getMoodEntriesForWeek() async {
-    final weekAgo = DateTime.now().subtract(const Duration(days: 7));
-    final allMoods = await getMoodEntries();
-    return allMoods.where((mood) => mood.date.isAfter(weekAgo)).toList();
+    try {
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) return [];
+
+      final weekAgo = DateTime.now().subtract(const Duration(days: 7));
+
+      QuerySnapshot snapshot = await FirebaseService.getUserMentalHealth(currentUser.uid)
+          .where('type', isEqualTo: 'mood')
+          .where('date', isGreaterThan: Timestamp.fromDate(weekAgo))
+          .orderBy('date', descending: true)
+          .get();
+
+      List<MoodEntry> moods = [];
+      for (var doc in snapshot.docs) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        
+        moods.add(MoodEntry(
+          id: doc.id,
+          date: (data['date'] as Timestamp).toDate(),
+          moodLevel: data['moodLevel'],
+          moodEmoji: data['moodEmoji'],
+          moodDescription: data['moodDescription'],
+          notes: data['notes'] ?? '',
+          tags: List<String>.from(data['tags'] ?? []),
+        ));
+      }
+
+      return moods;
+    } catch (e) {
+      print('Error getting mood entries for week: $e');
+      return [];
+    }
   }
 
   static Future<double> getAverageMoodThisWeek() async {
     final weekMoods = await getMoodEntriesForWeek();
     if (weekMoods.isEmpty) return 0.0;
-    final int sum = weekMoods.fold<int>(0, (sum, mood) => sum + (mood.moodLevel ?? 0));
+    final int sum = weekMoods.fold<int>(0, (sum, mood) => sum + mood.moodLevel);
     return sum / weekMoods.length;
   }
 
   // Gratitude Journal
-  static Future<void> addGratitudeEntry(GratitudeEntry gratitude) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    _gratitudeEntries.add(gratitude);
+  static Future<bool> addGratitudeEntry(GratitudeEntry gratitude) async {
+    try {
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) return false;
+
+      await FirebaseService.getUserMentalHealth(currentUser.uid).add({
+        'type': 'gratitude',
+        'date': Timestamp.fromDate(gratitude.date),
+        'gratitudeItems': gratitude.gratitudeItems,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      return true;
+    } catch (e) {
+      print('Error adding gratitude entry: $e');
+      return false;
+    }
   }
 
   static Future<List<GratitudeEntry>> getGratitudeEntries() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return List.from(_gratitudeEntries);
+    try {
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) return [];
+
+      QuerySnapshot snapshot = await FirebaseService.getUserMentalHealth(currentUser.uid)
+          .where('type', isEqualTo: 'gratitude')
+          .orderBy('date', descending: true)
+          .limit(30)
+          .get();
+
+      List<GratitudeEntry> entries = [];
+      for (var doc in snapshot.docs) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        
+        entries.add(GratitudeEntry(
+          id: doc.id,
+          date: (data['date'] as Timestamp).toDate(),
+          gratitudeItems: List<String>.from(data['gratitudeItems']),
+        ));
+      }
+
+      return entries;
+    } catch (e) {
+      print('Error getting gratitude entries: $e');
+      return [];
+    }
   }
 
   static Future<GratitudeEntry?> getTodayGratitude() async {
-    final today = DateTime.now();
-    final allEntries = await getGratitudeEntries();
-    
-    for (var entry in allEntries) {
-      if (entry.date.year == today.year &&
-          entry.date.month == today.month &&
-          entry.date.day == today.day) {
-        return entry;
+    try {
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) return null;
+
+      final today = DateTime.now();
+      final startOfDay = DateTime(today.year, today.month, today.day);
+      final endOfDay = DateTime(today.year, today.month, today.day, 23, 59, 59);
+
+      QuerySnapshot snapshot = await FirebaseService.getUserMentalHealth(currentUser.uid)
+          .where('type', isEqualTo: 'gratitude')
+          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        Map<String, dynamic> data = snapshot.docs.first.data() as Map<String, dynamic>;
+        return GratitudeEntry(
+          id: snapshot.docs.first.id,
+          date: (data['date'] as Timestamp).toDate(),
+          gratitudeItems: List<String>.from(data['gratitudeItems']),
+        );
       }
+
+      return null;
+    } catch (e) {
+      print('Error getting today\'s gratitude: $e');
+      return null;
     }
-    return null;
   }
 
-  // Meditations
+  // Meditation Sessions
+  static Future<bool> completeMeditation(CompletedMeditation meditation) async {
+    try {
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) return false;
+
+      await FirebaseService.getUserMentalHealth(currentUser.uid).add({
+        'type': 'meditation',
+        'sessionId': meditation.sessionId,
+        'completedAt': Timestamp.fromDate(meditation.completedAt),
+        'actualDuration': meditation.actualDuration,
+        'rating': meditation.rating,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      return true;
+    } catch (e) {
+      print('Error saving completed meditation: $e');
+      return false;
+    }
+  }
+
+  static Future<List<CompletedMeditation>> getCompletedMeditations() async {
+    try {
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) return [];
+
+      QuerySnapshot snapshot = await FirebaseService.getUserMentalHealth(currentUser.uid)
+          .where('type', isEqualTo: 'meditation')
+          .orderBy('completedAt', descending: true)
+          .limit(50)
+          .get();
+
+      List<CompletedMeditation> meditations = [];
+      for (var doc in snapshot.docs) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        
+        meditations.add(CompletedMeditation(
+          sessionId: data['sessionId'],
+          completedAt: (data['completedAt'] as Timestamp).toDate(),
+          actualDuration: data['actualDuration'],
+          rating: data['rating'],
+        ));
+      }
+
+      return meditations;
+    } catch (e) {
+      print('Error getting completed meditations: $e');
+      return [];
+    }
+  }
+
+  // Predefined content methods
   static Future<List<Meditation>> getMeditations() async {
-    await Future.delayed(const Duration(milliseconds: 500));
+    // Return predefined meditations
     return [
       Meditation(
         id: '1',
@@ -124,7 +310,6 @@ class MentalHealthService {
 
   // Breathing Exercises
   static Future<List<BreathingExercise>> getBreathingExercises() async {
-    await Future.delayed(const Duration(milliseconds: 300));
     return [
       BreathingExercise(
         id: '1',
@@ -164,7 +349,6 @@ class MentalHealthService {
 
   // Mental Health Challenges
   static Future<List<MentalHealthChallenge>> getChallenges() async {
-    await Future.delayed(const Duration(milliseconds: 500));
     return [
       MentalHealthChallenge(
         id: '1',
@@ -229,51 +413,98 @@ class MentalHealthService {
   }
 
   // Challenge Progress
-  static Future<void> startChallenge(String challengeId) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    final challenge = (await getChallenges()).firstWhere((c) => c.id == challengeId);
-    
-    final progress = ChallengeProgress(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      challengeId: challengeId,
-      startDate: DateTime.now(),
-      currentDay: 1,
-      completedDays: List.filled(challenge.durationDays, false),
-      isCompleted: false,
-    );
-    
-    _challengeProgress.add(progress);
+  static Future<bool> startChallenge(String challengeId) async {
+    try {
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) return false;
+
+      final challenge = (await getChallenges()).firstWhere((c) => c.id == challengeId);
+      
+      await FirebaseService.getUserMentalHealth(currentUser.uid).add({
+        'type': 'challenge_progress',
+        'challengeId': challengeId,
+        'startDate': Timestamp.fromDate(DateTime.now()),
+        'currentDay': 1,
+        'completedDays': List.filled(challenge.durationDays, false),
+        'isCompleted': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      return true;
+    } catch (e) {
+      print('Error starting challenge: $e');
+      return false;
+    }
   }
 
   static Future<List<ChallengeProgress>> getActiveChallenges() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return _challengeProgress.where((progress) => !progress.isCompleted).toList();
+    try {
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) return [];
+
+      QuerySnapshot snapshot = await FirebaseService.getUserMentalHealth(currentUser.uid)
+          .where('type', isEqualTo: 'challenge_progress')
+          .where('isCompleted', isEqualTo: false)
+          .orderBy('startDate', descending: true)
+          .get();
+
+      List<ChallengeProgress> challenges = [];
+      for (var doc in snapshot.docs) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        
+        challenges.add(ChallengeProgress(
+          id: doc.id,
+          challengeId: data['challengeId'],
+          startDate: (data['startDate'] as Timestamp).toDate(),
+          currentDay: data['currentDay'],
+          completedDays: List<bool>.from(data['completedDays']),
+          isCompleted: data['isCompleted'],
+        ));
+      }
+
+      return challenges;
+    } catch (e) {
+      print('Error getting active challenges: $e');
+      return [];
+    }
   }
 
-  static Future<void> markDayComplete(String progressId, int day) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    final progressIndex = _challengeProgress.indexWhere((p) => p.id == progressId);
-    if (progressIndex != -1) {
-      final progress = _challengeProgress[progressIndex];
-      final updatedCompletedDays = List<bool>.from(progress.completedDays);
-      updatedCompletedDays[day - 1] = true;
-      
-      final updatedProgress = ChallengeProgress(
-        id: progress.id,
-        challengeId: progress.challengeId,
-        startDate: progress.startDate,
-        currentDay: progress.currentDay + 1,
-        completedDays: updatedCompletedDays,
-        isCompleted: updatedCompletedDays.every((completed) => completed),
-      );
-      
-      _challengeProgress[progressIndex] = updatedProgress;
+  static Future<bool> markDayComplete(String progressId, int day) async {
+    try {
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) return false;
+
+      DocumentSnapshot doc = await FirebaseService.getUserMentalHealth(currentUser.uid)
+          .doc(progressId)
+          .get();
+
+      if (doc.exists) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        List<bool> completedDays = List<bool>.from(data['completedDays']);
+        
+        if (day > 0 && day <= completedDays.length) {
+          completedDays[day - 1] = true;
+          
+          await doc.reference.update({
+            'completedDays': completedDays,
+            'currentDay': data['currentDay'] + 1,
+            'isCompleted': completedDays.every((completed) => completed),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+          
+          return true;
+        }
+      }
+
+      return false;
+    } catch (e) {
+      print('Error marking day complete: $e');
+      return false;
     }
   }
 
   // Affirmations
   static Future<List<Affirmation>> getAffirmations() async {
-    await Future.delayed(const Duration(milliseconds: 300));
     return [
       Affirmation(
         id: '1',
@@ -312,7 +543,6 @@ class MentalHealthService {
 
   // Motivational Quotes
   static Future<List<MotivationalQuote>> getMotivationalQuotes() async {
-    await Future.delayed(const Duration(milliseconds: 300));
     return [
       MotivationalQuote(
         id: '1',
@@ -356,7 +586,6 @@ class MentalHealthService {
 
   // Mindfulness Tips
   static Future<String> getDailyMindfulnessTip() async {
-    await Future.delayed(const Duration(milliseconds: 200));
     final tips = [
       'Take 1 minute to pause and observe your breath',
       'Notice 5 things you can see, 4 you can hear, 3 you can touch, 2 you can smell, 1 you can taste',
@@ -377,7 +606,6 @@ class MentalHealthService {
 
   // Professional Help Resources
   static Future<Map<String, dynamic>> getProfessionalHelpResources() async {
-    await Future.delayed(const Duration(milliseconds: 300));
     return {
       'helplines': [
         {
@@ -407,5 +635,32 @@ class MentalHealthService {
         'Online therapy platforms make mental health support more accessible',
       ],
     };
+  }
+
+  // Delete entries
+  static Future<bool> deleteMoodEntry(String entryId) async {
+    try {
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) return false;
+
+      await FirebaseService.getUserMentalHealth(currentUser.uid).doc(entryId).delete();
+      return true;
+    } catch (e) {
+      print('Error deleting mood entry: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> deleteGratitudeEntry(String entryId) async {
+    try {
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) return false;
+
+      await FirebaseService.getUserMentalHealth(currentUser.uid).doc(entryId).delete();
+      return true;
+    } catch (e) {
+      print('Error deleting gratitude entry: $e');
+      return false;
+    }
   }
 }

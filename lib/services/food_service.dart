@@ -1,10 +1,24 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/food_entry.dart';
+import 'firebase_service.dart';
 
 class FoodService {
-  static final List<MealEntry> _mealEntries = [];
+  static final FirebaseFirestore _firestore = FirebaseService.firestore;
+  static final FirebaseAuth _auth = FirebaseService.auth;
 
+  // Get food database (predefined foods)
   static Future<List<FoodEntry>> getFoodDatabase() async {
-    await Future.delayed(const Duration(milliseconds: 500));
+    try {
+      // For now, return predefined foods. In production, these could be stored in Firestore
+      return _getPredefinedFoods();
+    } catch (e) {
+      print('Error getting food database: $e');
+      return _getPredefinedFoods();
+    }
+  }
+
+  static List<FoodEntry> _getPredefinedFoods() {
     return [
       FoodEntry(
         id: '1',
@@ -94,6 +108,28 @@ class FoodService {
         fiber: 0.0,
         servingSize: '100g',
       ),
+      FoodEntry(
+        id: '9',
+        name: 'Sweet Potato',
+        category: 'Vegetables',
+        calories: 112,
+        protein: 2.0,
+        carbs: 26.0,
+        fat: 0.1,
+        fiber: 3.9,
+        servingSize: '1 medium (128g)',
+      ),
+      FoodEntry(
+        id: '10',
+        name: 'Oatmeal',
+        category: 'Grains',
+        calories: 154,
+        protein: 5.3,
+        carbs: 28.0,
+        fat: 3.2,
+        fiber: 4.0,
+        servingSize: '1 cup cooked (234g)',
+      ),
     ];
   }
 
@@ -107,23 +143,119 @@ class FoodService {
     ).toList();
   }
 
-  static Future<void> addMealEntry(MealEntry meal) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    _mealEntries.add(meal);
+  // Save meal entry to Firebase
+  static Future<bool> addMealEntry(MealEntry meal) async {
+    try {
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) return false;
+
+      Map<String, dynamic> mealData = {
+        'date': Timestamp.fromDate(meal.date),
+        'mealType': meal.mealType,
+        'foods': meal.foods.map((f) => {
+          'foodEntry': f.foodEntry.toJson(),
+          'quantity': f.quantity,
+        }).toList(),
+        'notes': meal.notes,
+        'totalCalories': meal.totalCalories,
+        'totalProtein': meal.totalProtein,
+        'totalCarbs': meal.totalCarbs,
+        'totalFat': meal.totalFat,
+        'createdAt': FieldValue.serverTimestamp(),
+      };
+
+      await FirebaseService.getUserFoodEntries(currentUser.uid).add(mealData);
+      return true;
+    } catch (e) {
+      print('Error adding meal entry: $e');
+      return false;
+    }
   }
 
+  // Get user's meal entries from Firebase
   static Future<List<MealEntry>> getMealEntries() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return List.from(_mealEntries);
+    try {
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) return [];
+
+      QuerySnapshot snapshot = await FirebaseService.getUserFoodEntries(currentUser.uid)
+          .orderBy('date', descending: true)
+          .limit(100)
+          .get();
+
+      List<MealEntry> meals = [];
+      for (var doc in snapshot.docs) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        
+        List<FoodEntryWithQuantity> foods = [];
+        if (data['foods'] != null) {
+          for (var foodData in data['foods']) {
+            foods.add(FoodEntryWithQuantity(
+              foodEntry: FoodEntry.fromJson(foodData['foodEntry']),
+              quantity: foodData['quantity'].toDouble(),
+            ));
+          }
+        }
+
+        meals.add(MealEntry(
+          id: doc.id,
+          date: (data['date'] as Timestamp).toDate(),
+          mealType: data['mealType'],
+          foods: foods,
+          notes: data['notes'] ?? '',
+        ));
+      }
+
+      return meals;
+    } catch (e) {
+      print('Error getting meal entries: $e');
+      return [];
+    }
   }
 
   static Future<List<MealEntry>> getMealEntriesForDate(DateTime date) async {
-    final allMeals = await getMealEntries();
-    return allMeals.where((meal) => 
-      meal.date.year == date.year &&
-      meal.date.month == date.month &&
-      meal.date.day == date.day
-    ).toList();
+    try {
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) return [];
+
+      // Create start and end of day timestamps
+      final startOfDay = DateTime(date.year, date.month, date.day);
+      final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
+
+      QuerySnapshot snapshot = await FirebaseService.getUserFoodEntries(currentUser.uid)
+          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
+          .orderBy('date')
+          .get();
+
+      List<MealEntry> meals = [];
+      for (var doc in snapshot.docs) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        
+        List<FoodEntryWithQuantity> foods = [];
+        if (data['foods'] != null) {
+          for (var foodData in data['foods']) {
+            foods.add(FoodEntryWithQuantity(
+              foodEntry: FoodEntry.fromJson(foodData['foodEntry']),
+              quantity: foodData['quantity'].toDouble(),
+            ));
+          }
+        }
+
+        meals.add(MealEntry(
+          id: doc.id,
+          date: (data['date'] as Timestamp).toDate(),
+          mealType: data['mealType'],
+          foods: foods,
+          notes: data['notes'] ?? '',
+        ));
+      }
+
+      return meals;
+    } catch (e) {
+      print('Error getting meal entries for date: $e');
+      return [];
+    }
   }
 
   static Future<Map<String, int>> getTodayNutrition() async {
@@ -151,11 +283,69 @@ class FoodService {
   }
 
   static Future<int> getCaloriesThisWeek() async {
-    final weekAgo = DateTime.now().subtract(const Duration(days: 7));
-    final allMeals = await getMealEntries();
-    
-    return allMeals
-        .where((meal) => meal.date.isAfter(weekAgo))
-        .fold<int>(0, (sum, meal) => sum + (meal.totalCalories));
+    try {
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) return 0;
+
+      final weekAgo = DateTime.now().subtract(const Duration(days: 7));
+      
+      QuerySnapshot snapshot = await FirebaseService.getUserFoodEntries(currentUser.uid)
+          .where('date', isGreaterThan: Timestamp.fromDate(weekAgo))
+          .get();
+
+      int totalCalories = 0;
+      for (var doc in snapshot.docs) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        totalCalories += (data['totalCalories'] as int? ?? 0);
+      }
+
+      return totalCalories;
+    } catch (e) {
+      print('Error getting calories this week: $e');
+      return 0;
+    }
+  }
+
+  // Delete meal entry
+  static Future<bool> deleteMealEntry(String mealId) async {
+    try {
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) return false;
+
+      await FirebaseService.getUserFoodEntries(currentUser.uid).doc(mealId).delete();
+      return true;
+    } catch (e) {
+      print('Error deleting meal entry: $e');
+      return false;
+    }
+  }
+
+  // Update meal entry
+  static Future<bool> updateMealEntry(MealEntry meal) async {
+    try {
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) return false;
+
+      Map<String, dynamic> mealData = {
+        'date': Timestamp.fromDate(meal.date),
+        'mealType': meal.mealType,
+        'foods': meal.foods.map((f) => {
+          'foodEntry': f.foodEntry.toJson(),
+          'quantity': f.quantity,
+        }).toList(),
+        'notes': meal.notes,
+        'totalCalories': meal.totalCalories,
+        'totalProtein': meal.totalProtein,
+        'totalCarbs': meal.totalCarbs,
+        'totalFat': meal.totalFat,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      await FirebaseService.getUserFoodEntries(currentUser.uid).doc(meal.id).update(mealData);
+      return true;
+    } catch (e) {
+      print('Error updating meal entry: $e');
+      return false;
+    }
   }
 }

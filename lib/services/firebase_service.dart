@@ -99,7 +99,7 @@ class FirebaseService {
   static CollectionReference get messagesCollection => firestore.collection('messages');
   static CollectionReference get reportsCollection => firestore.collection('reports');
   static CollectionReference get workoutsCollection => firestore.collection('workouts');
-  static CollectionReference get foodEntriesCollection => firestore.collection('foodEntries');
+  static CollectionReference get foodDatabaseCollection => firestore.collection('foodDatabase');
   static CollectionReference get mentalHealthCollection => firestore.collection('mentalHealth');
 
   // Document references
@@ -112,7 +112,7 @@ class FirebaseService {
   static DocumentReference getMessageDocument(String messageId) => messagesCollection.doc(messageId);
   static DocumentReference getReportDocument(String reportId) => reportsCollection.doc(reportId);
   static DocumentReference getWorkoutDocument(String workoutId) => workoutsCollection.doc(workoutId);
-  static DocumentReference getFoodEntryDocument(String entryId) => foodEntriesCollection.doc(entryId);
+  static DocumentReference getFoodDatabaseDocument(String entryId) => foodDatabaseCollection.doc(entryId);
   static DocumentReference getMentalHealthDocument(String entryId) => mentalHealthCollection.doc(entryId);
 
   // Subcollection references

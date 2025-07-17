@@ -2,19 +2,19 @@ class MoodEntry {
   final String id;
   final DateTime date;
   final int moodLevel; // 1-5 scale
-  final String moodType;
+  final String moodEmoji;
+  final String moodDescription;
   final String notes;
-  final List<String> activities;
-  final List<String> emotions;
+  final List<String> tags;
 
   MoodEntry({
     required this.id,
     required this.date,
     required this.moodLevel,
-    required this.moodType,
+    required this.moodEmoji,
+    required this.moodDescription,
     this.notes = '',
-    this.activities = const [],
-    this.emotions = const [],
+    this.tags = const [],
   });
 
   Map<String, dynamic> toJson() {
@@ -22,10 +22,10 @@ class MoodEntry {
       'id': id,
       'date': date.toIso8601String(),
       'moodLevel': moodLevel,
-      'moodType': moodType,
+      'moodEmoji': moodEmoji,
+      'moodDescription': moodDescription,
       'notes': notes,
-      'activities': activities,
-      'emotions': emotions,
+      'tags': tags,
     };
   }
 
@@ -34,10 +34,10 @@ class MoodEntry {
       id: json['id'],
       date: DateTime.parse(json['date']),
       moodLevel: json['moodLevel'],
-      moodType: json['moodType'],
+      moodEmoji: json['moodEmoji'],
+      moodDescription: json['moodDescription'],
       notes: json['notes'] ?? '',
-      activities: List<String>.from(json['activities'] ?? []),
-      emotions: List<String>.from(json['emotions'] ?? []),
+      tags: List<String>.from(json['tags'] ?? []),
     );
   }
 }
