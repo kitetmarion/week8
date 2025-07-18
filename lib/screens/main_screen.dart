@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../theme/app_theme.dart';
 import 'home_screen.dart';
 import 'workout_screen.dart';
 import 'food_log_screen.dart';
-import 'mental_health_screen.dart';
+import 'enhanced_mental_health_screen.dart';
 import 'community_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -21,7 +22,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     const HomeScreen(),
     const WorkoutScreen(),
     const FoodLogScreen(),
-    const MentalHealthScreen(),
+    const EnhancedMentalHealthScreen(),
     const CommunityScreen(),
   ];
 
@@ -57,6 +58,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
       body: SafeArea(
         child: TabBarView(
           controller: _tabController,
@@ -65,6 +67,12 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.white,
+        elevation: 8,
+        selectedItemColor: AppTheme.primaryColor,
+        unselectedItemColor: AppTheme.textTertiary,
+        selectedFontSize: 12.0,
+        unselectedFontSize: 12.0,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.dashboard),
@@ -88,13 +96,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.blue[600],
-        unselectedItemColor: Colors.grey,
         onTap: _onItemTapped,
-        selectedFontSize: 12.0,
-        unselectedFontSize: 12.0,
-        backgroundColor: Colors.white,
-        elevation: 8,
       ),
     );
   }

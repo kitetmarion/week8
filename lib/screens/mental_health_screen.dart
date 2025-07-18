@@ -3,14 +3,20 @@ import '../models/mental_health.dart';
 import '../services/mental_health_service.dart';
 import '../widgets/custom_button.dart';
 
-class MentalHealthScreen extends StatefulWidget {
+// This file is now replaced by enhanced_mental_health_screen.dart
+// Keeping this as a redirect for compatibility
+
+class MentalHealthScreen extends StatelessWidget {
   const MentalHealthScreen({super.key});
 
   @override
-  _MentalHealthScreenState createState() => _MentalHealthScreenState();
+  Widget build(BuildContext context) {
+    // Redirect to the enhanced version
+    return const EnhancedMentalHealthScreen();
+  }
 }
 
-class _MentalHealthScreenState extends State<MentalHealthScreen> {
+class _MentalHealthScreenStateOld extends State<MentalHealthScreen> {
   bool _isLoading = true;
   String _dailyTip = '';
   MotivationalQuote? _dailyQuote;
@@ -665,18 +671,9 @@ class _MentalHealthScreenState extends State<MentalHealthScreen> {
   }
 }
 
-// Placeholder screens - we'll implement these next
-class MoodTrackerScreen extends StatelessWidget {
-  const MoodTrackerScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Mood Tracker')),
-      body: const Center(child: Text('Mood Tracker Screen')),
-    );
-  }
-}
+// Import the new enhanced screens
+export 'enhanced_mental_health_screen.dart';
+export 'mood_tracker_screen.dart';
 
 class MeditationsScreen extends StatelessWidget {
   const MeditationsScreen({super.key});

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
+import '../widgets/modern_card.dart';
 import '../services/auth_service.dart';
 import '../services/workout_service.dart';
 import '../services/food_service.dart';
@@ -123,46 +125,47 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
+        backgroundColor: AppTheme.backgroundColor,
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppTheme.backgroundColor,
       body: RefreshIndicator(
         onRefresh: _loadDashboardData,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(AppTheme.spaceM),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Welcome Header
               _buildWelcomeHeader(),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppTheme.spaceL),
 
               // Daily Tip
               _buildDailyTip(),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppTheme.spaceL),
 
               // Weekly Stats Overview
               _buildWeeklyStats(),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppTheme.spaceL),
 
               // Today's Nutrition
               _buildTodayNutrition(),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppTheme.spaceL),
 
               // Recent Workouts
               _buildRecentWorkouts(),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppTheme.spaceL),
 
               // Today's Meals
               _buildTodayMeals(),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppTheme.spaceL),
 
               // Mental Health Overview
               _buildMentalHealthOverview(),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppTheme.spaceL),
 
               // Recent Mood Entries
               _buildRecentMoods(),
@@ -174,64 +177,54 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildWelcomeHeader() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Theme.of(context).primaryColor,
-            Theme.of(context).primaryColor.withOpacity(0.8),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-      ),
+    return GradientCard(
+      gradient: AppTheme.primaryGradient,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Welcome back!',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Welcome back!',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: AppTheme.spaceXS),
+                  Text(
+                    currentUser?.fullName ?? 'User',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    '@${currentUser?.username ?? 'user'}',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+                ),
+                child: IconButton(
+                  onPressed: _logout,
+                  icon: const Icon(Icons.logout, color: Colors.white),
                 ),
               ),
-              IconButton(
-                onPressed: _logout,
-                icon: const Icon(Icons.logout, color: Colors.white),
-              ),
             ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            currentUser?.fullName ?? 'User',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '@${currentUser?.username ?? 'user'}',
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.8),
-              fontSize: 16,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'weekly overview',
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.9),
-              fontSize: 14,
-            ),
           ),
         ],
       ),
@@ -239,36 +232,29 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildDailyTip() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.blue[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue[200]!),
-      ),
+    return ModernCard(
+      backgroundColor: AppTheme.infoColor.withOpacity(0.05),
+      border: Border.all(color: AppTheme.infoColor.withOpacity(0.2)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.lightbulb, color: Colors.blue[600], size: 24),
-              const SizedBox(width: 8),
+              Icon(Icons.lightbulb, color: AppTheme.infoColor, size: 24),
+              const SizedBox(width: AppTheme.spaceS),
               Text(
                 'Daily Mindfulness Tip',
-                style: TextStyle(
-                  fontSize: 16,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppTheme.infoColor,
                   fontWeight: FontWeight.w600,
-                  color: Colors.blue[800],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppTheme.spaceM),
           Text(
             _dailyTip,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.blue[700],
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               height: 1.4,
             ),
           ),
@@ -283,42 +269,72 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         Text(
           'This Week\'s Progress',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.grey[800],
-          ),
+          style: Theme.of(context).textTheme.headlineSmall,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppTheme.spaceM),
         Row(
           children: [
             Expanded(
-              child: _buildStatCard(
+              child: StatCard(
+                title: 'Workouts',
+                value: '${_weeklyStats['workouts'] ?? 0}',
+                subtitle: 'completed',
+                icon: Icons.fitness_center,
+                color: AppTheme.warningColor,
+              ),
+            ),
+            const SizedBox(width: AppTheme.spaceM),
+            Expanded(
+              child: StatCard(
+                title: 'Calories',
+                value: '${_weeklyStats['calories'] ?? 0}',
+                subtitle: 'burned',
+                icon: Icons.local_fire_department,
+                color: AppTheme.errorColor,
+              ),
+            ),
+            const SizedBox(width: AppTheme.spaceM),
+            Expanded(
+              child: StatCard(
+                title: 'Minutes',
+                value: '${_weeklyStats['minutes'] ?? 0}',
+                subtitle: 'active',
+                icon: Icons.timer,
+                color: AppTheme.successColor,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCardOld(
                 'Workouts',
                 '${_weeklyStats['workouts'] ?? 0}',
                 'completed',
                 Icons.fitness_center,
-                Colors.orange,
+                AppTheme.warningColor,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppTheme.spaceM),
             Expanded(
               child: _buildStatCard(
                 'Calories',
                 '${_weeklyStats['calories'] ?? 0}',
                 'burned',
                 Icons.local_fire_department,
-                Colors.red,
+                AppTheme.errorColor,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppTheme.spaceM),
             Expanded(
               child: _buildStatCard(
                 'Minutes',
                 '${_weeklyStats['minutes'] ?? 0}',
                 'active',
                 Icons.timer,
-                Colors.green,
+                AppTheme.successColor,
               ),
             ),
           ],
@@ -328,47 +344,27 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildStatCard(String title, String value, String subtitle, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 3,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
+    return ModernCard(
       child: Column(
         children: [
           Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppTheme.spaceS),
           Text(
             value,
-            style: TextStyle(
-              fontSize: 20,
+            style: Theme.of(context).textTheme.displaySmall?.copyWith(
               fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
             ),
           ),
           Text(
             title,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
               fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
           ),
           Text(
             subtitle,
-            style: TextStyle(
-              fontSize: 10,
-              color: Colors.grey[500],
-            ),
+            style: Theme.of(context).textTheme.bodySmall,
             textAlign: TextAlign.center,
           ),
         ],
@@ -382,20 +378,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final carbs = _todayNutrition['carbs'] ?? 0;
     final fat = _todayNutrition['fat'] ?? 0;
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 3,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
+    return ModernCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -404,62 +387,55 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Text(
                 'Today\'s Nutrition',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
-                ),
+                style: Theme.of(context).textTheme.headlineSmall,
               ),
-              Icon(Icons.restaurant, color: Colors.green[600]),
+              Icon(Icons.restaurant, color: AppTheme.successColor),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppTheme.spaceM),
           
           // Calories
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppTheme.spaceM),
             decoration: BoxDecoration(
-              color: Colors.green[50],
-              borderRadius: BorderRadius.circular(8),
+              color: AppTheme.successColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   'Calories',
-                  style: TextStyle(
-                    fontSize: 16,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w500,
-                    color: Colors.grey[700],
                   ),
                 ),
                 Text(
                   '$calories kcal',
-                  style: TextStyle(
-                    fontSize: 18,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.green[700],
+                    color: AppTheme.successColor,
                   ),
                 ),
               ],
             ),
           ),
           
-          const SizedBox(height: 12),
+          const SizedBox(height: AppTheme.spaceM),
           
           // Macros
           Row(
             children: [
               Expanded(
-                child: _buildMacroCard('Protein', '${protein}g', Colors.red),
+                child: _buildMacroCard('Protein', '${protein}g', AppTheme.errorColor),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppTheme.spaceS),
               Expanded(
-                child: _buildMacroCard('Carbs', '${carbs}g', Colors.blue),
+                child: _buildMacroCard('Carbs', '${carbs}g', AppTheme.infoColor),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppTheme.spaceS),
               Expanded(
-                child: _buildMacroCard('Fat', '${fat}g', Colors.orange),
+                child: _buildMacroCard('Fat', '${fat}g', AppTheme.warningColor),
               ),
             ],
           ),
@@ -470,27 +446,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildMacroCard(String label, String value, Color color) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppTheme.spaceM),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
       ),
       child: Column(
         children: [
           Text(
             value,
-            style: TextStyle(
-              fontSize: 16,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: color,
             ),
           ),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-            ),
+            style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
       ),
@@ -766,20 +738,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildMentalHealthOverview() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 3,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
+    return ModernCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -788,11 +747,7 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Text(
                 'Mental Wellness',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
-                ),
+                style: Theme.of(context).textTheme.headlineSmall,
               ),
               TextButton(
                 onPressed: () {
@@ -803,47 +758,40 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppTheme.spaceM),
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppTheme.spaceM),
                 decoration: BoxDecoration(
-                  color: Colors.purple[50],
-                  borderRadius: BorderRadius.circular(12),
+                  gradient: AppTheme.accentGradient,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.mood,
-                  color: Colors.purple[600],
+                  color: Colors.white,
                   size: 32,
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: AppTheme.spaceM),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Average Mood This Week',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
+                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
+                    const SizedBox(height: AppTheme.spaceXS),
                     Text(
                       _averageMood > 0 ? '${_averageMood.toStringAsFixed(1)}/5' : 'No data yet',
-                      style: TextStyle(
-                        fontSize: 24,
+                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: Colors.grey[800],
                       ),
                     ),
                     Text(
                       _getMoodDescription(_averageMood),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[500],
-                      ),
+                      style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
                 ),
