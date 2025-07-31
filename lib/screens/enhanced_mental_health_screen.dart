@@ -670,64 +670,7 @@ class _EnhancedMentalHealthScreenState extends State<EnhancedMentalHealthScreen>
   }
 
   Widget _buildMeditationTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppTheme.spaceM),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Meditation Sessions',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: AppTheme.spaceM),
-          Text(
-            'Find peace and clarity through guided meditation',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.textSecondary,
-            ),
-          ),
-          const SizedBox(height: AppTheme.spaceL),
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            crossAxisSpacing: AppTheme.spaceM,
-            mainAxisSpacing: AppTheme.spaceM,
-            childAspectRatio: 0.8,
-            children: [
-              _buildMeditationCard(
-                'Morning Mindfulness',
-                '10 min',
-                Icons.wb_sunny,
-                AppTheme.warningColor,
-                'Start your day with clarity',
-              ),
-              _buildMeditationCard(
-                'Stress Relief',
-                '15 min',
-                Icons.spa,
-                AppTheme.successColor,
-                'Release tension and worry',
-              ),
-              _buildMeditationCard(
-                'Sleep Preparation',
-                '12 min',
-                Icons.bedtime,
-                AppTheme.primaryColor,
-                'Prepare for restful sleep',
-              ),
-              _buildMeditationCard(
-                'Anxiety Relief',
-                '8 min',
-                Icons.healing,
-                AppTheme.accentColor,
-                'Calm anxious thoughts',
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+    return const MeditationScreen();
   }
 
   Widget _buildMeditationCard(String title, String duration, IconData icon, Color color, String description) {

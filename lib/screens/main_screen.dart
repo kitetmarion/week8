@@ -21,15 +21,14 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   final List<Widget> _screens = [
     const HomeScreen(),
     const WorkoutScreen(),
-    const FoodLogScreen(),
-    const EnhancedMentalHealthScreen(),
-    const CommunityScreen(),
+    const MeditationScreen(),
+    const HomeScreen(), // Placeholder for Calibre
   ];
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) {
         setState(() {
@@ -58,7 +57,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: const Color(0xFF1A1D29),
       body: SafeArea(
         child: TabBarView(
           controller: _tabController,
@@ -67,32 +66,28 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF1A1D29),
         elevation: 8,
-        selectedItemColor: AppTheme.primaryColor,
-        unselectedItemColor: AppTheme.textTertiary,
+        selectedItemColor: Colors.blue[400],
+        unselectedItemColor: Colors.white.withOpacity(0.6),
         selectedFontSize: 12.0,
         unselectedFontSize: 12.0,
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Dashboard',
+            icon: Icon(Icons.home),
+            label: 'Home',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.fitness_center),
-            label: 'Workouts',
+            label: 'Formule',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.restaurant),
-            label: 'Food Log',
+            icon: Icon(Icons.person),
+            label: 'Parties',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.psychology),
-            label: 'Mental Health',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people),
-            label: 'Community',
+            icon: Icon(Icons.more_horiz),
+            label: 'Calibre',
           ),
         ],
         currentIndex: _selectedIndex,
