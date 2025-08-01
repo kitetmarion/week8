@@ -22,7 +22,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     const HomeScreen(),
     const WorkoutScreen(),
     const MeditationScreen(),
-    const HomeScreen(), // Placeholder for Calibre
+    const CommunityScreen(),
   ];
 
   @override
@@ -79,15 +79,15 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.fitness_center),
-            label: 'Formule',
+            label: 'Workouts',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Parties',
+            icon: Icon(Icons.self_improvement),
+            label: 'Meditation',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.more_horiz),
-            label: 'Calibre',
+            icon: Icon(Icons.people),
+            label: 'Community',
           ),
         ],
         currentIndex: _selectedIndex,

@@ -92,45 +92,17 @@ class _HomeScreenState extends State<HomeScreen> {
     };
   }
 
-  void _logout() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Logout'),
-          content: const Text('Are you sure you want to logout?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                AuthService.logout();
-                Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-              },
-              child: const Text(
-                'Logout',
-                style: TextStyle(color: Colors.red),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
-        backgroundColor: Color(0xFF1A1D29),
+        backgroundColor: AppTheme.backgroundColor,
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1A1D29),
+      backgroundColor: AppTheme.backgroundColor,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _loadDashboardData,
@@ -139,28 +111,24 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header with profile
+                // Header with greeting
                 _buildHeader(),
                 const SizedBox(height: 30),
 
-                // Welcome message
-                _buildWelcomeMessage(),
+                // Quick stats cards
+                _buildQuickStats(),
                 const SizedBox(height: 30),
 
-                // Stats row
-                _buildStatsRow(),
+                // Today's progress
+                _buildTodaysProgress(),
                 const SizedBox(height: 30),
 
-                // Goal card
-                _buildGoalCard(),
+                // Recent activity
+                _buildRecentActivity(),
                 const SizedBox(height: 30),
 
-                // Excitings section
-                _buildExcitingsSection(),
-                const SizedBox(height: 30),
-
-                // Weekly goal chart
-                _buildWeeklyGoalChart(),
+                // Quick actions
+                _buildQuickActions(),
               ],
             ),
           ),
@@ -173,21 +141,30 @@ class _HomeScreenState extends State<HomeScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Container(
-          padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(
-            Icons.menu,
-            color: Colors.white,
-            size: 24,
-          ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Good ${_getTimeOfDay()}',
+              style: const TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              currentUser?.fullName ?? 'Welcome',
+              style: const TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
         CircleAvatar(
-          radius: 20,
-          backgroundColor: Colors.blue[400],
+          radius: 25,
+          backgroundColor: AppTheme.primaryColor,
           child: Text(
             currentUser?.fullName.isNotEmpty == true 
                 ? currentUser!.fullName[0].toUpperCase()
@@ -195,6 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
+              fontSize: 18,
             ),
           ),
         ),
@@ -202,173 +180,87 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildWelcomeMessage() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Good Morning',
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.7),
-            fontSize: 16,
-          ),
-        ),
-        const SizedBox(height: 5),
-        Text(
-          currentUser?.fullName ?? 'User',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatsRow() {
+  Widget _buildQuickStats() {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _buildStatItem('Nagar', '201', Colors.white),
-        _buildStatItem('Thakle', '24', Colors.white),
-        _buildStatItem('Turd', '17', Colors.orange),
-        _buildStatItem('You', '73', Colors.orange),
-        _buildStatItem('Impure', '037', Colors.white),
-        _buildStatItem('Sere', '9', Colors.white),
+        Expanded(
+          child: StatCard(
+            title: 'Workouts',
+            value: '${_weeklyStats['workouts'] ?? 0}',
+            subtitle: 'This week',
+            icon: Icons.fitness_center,
+            color: AppTheme.primaryColor,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: StatCard(
+            title: 'Calories',
+            value: '${_weeklyStats['calories'] ?? 0}',
+            subtitle: 'Burned',
+            icon: Icons.local_fire_department,
+            color: AppTheme.accentColor,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: StatCard(
+            title: 'Minutes',
+            value: '${_weeklyStats['minutes'] ?? 0}',
+            subtitle: 'Active',
+            icon: Icons.timer,
+            color: AppTheme.successColor,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildStatItem(String label, String value, Color valueColor) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.6),
-            fontSize: 12,
-          ),
-        ),
-        const SizedBox(height: 5),
-        Text(
-          value,
-          style: TextStyle(
-            color: valueColor,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
+  Widget _buildTodaysProgress() {
+    final caloriesGoal = 2000;
+    final currentCalories = _todayNutrition['calories'] ?? 0;
+    final progress = currentCalories / caloriesGoal;
 
-  Widget _buildGoalCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-        ),
-      ),
-      child: Row(
+    return ModernCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 25,
-            backgroundColor: Colors.orange,
-            child: const Icon(
-              Icons.emoji_events,
-              color: Colors.white,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Lauratic Goal',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text(
-                        'JCPPL',
-                        style: TextStyle(
-                          color: Colors.orange,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text(
-                        '#MYGOAL2024',
-                        style: TextStyle(
-                          color: Colors.green,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.purple.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text(
-                        '#2024',
-                        style: TextStyle(
-                          color: Colors.purple,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Column(
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Coins 04',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.6),
-                  fontSize: 12,
-                ),
-              ),
               const Text(
-                '\$23',
+                'Today\'s Progress',
                 style: TextStyle(
-                  color: Colors.white,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
                 ),
               ),
+              Text(
+                '${(progress * 100).toInt()}%',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.primaryColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          LinearProgressIndicator(
+            value: progress.clamp(0.0, 1.0),
+            backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+            valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildProgressItem('Calories', '$currentCalories', 'kcal'),
+              _buildProgressItem('Protein', '${_todayNutrition['protein'] ?? 0}', 'g'),
+              _buildProgressItem('Carbs', '${_todayNutrition['carbs'] ?? 0}', 'g'),
+              _buildProgressItem('Fat', '${_todayNutrition['fat'] ?? 0}', 'g'),
             ],
           ),
         ],
@@ -376,7 +268,37 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildExcitingsSection() {
+  Widget _buildProgressItem(String label, String value, String unit) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.textPrimary,
+          ),
+        ),
+        Text(
+          unit,
+          style: const TextStyle(
+            fontSize: 12,
+            color: AppTheme.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            color: AppTheme.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRecentActivity() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -384,193 +306,270 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Excitings',
+              'Recent Activity',
               style: TextStyle(
-                color: Colors.white,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary,
               ),
             ),
-            Icon(
-              Icons.search,
-              color: Colors.white.withOpacity(0.6),
-              size: 24,
+            TextButton(
+              onPressed: () {},
+              child: const Text('View All'),
             ),
           ],
         ),
-        const SizedBox(height: 20),
-        _buildExcitingItem(
-          'Samaria Exercises',
-          '\$15722.6',
-          Icons.fitness_center,
-          Colors.blue,
-        ),
-        const SizedBox(height: 15),
-        _buildExcitingItem(
-          'Progress',
-          '\$45,831',
-          Icons.trending_up,
-          Colors.green,
-        ),
-        const SizedBox(height: 15),
-        _buildExcitingItem(
-          'Stermear',
-          '\$2920.817',
-          Icons.psychology,
-          Colors.purple,
-        ),
+        const SizedBox(height: 16),
+        if (_recentWorkouts.isEmpty && _recentMoods.isEmpty)
+          ModernCard(
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.timeline,
+                    size: 48,
+                    color: AppTheme.textTertiary,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'No recent activity',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Start your wellness journey today!',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppTheme.textTertiary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          Column(
+            children: [
+              ..._recentWorkouts.take(3).map((workout) => 
+                ModernCard(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.fitness_center,
+                          color: AppTheme.primaryColor,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Workout Completed',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.textPrimary,
+                              ),
+                            ),
+                            Text(
+                              '${workout.actualDuration} minutes • ${workout.caloriesBurned} calories',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        _formatTime(workout.startTime),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textTertiary,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              ),
+              ..._recentMoods.take(2).map((mood) => 
+                ModernCard(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppTheme.secondaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          mood.moodEmoji,
+                          style: const TextStyle(fontSize: 20),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Mood: ${mood.moodDescription}',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.textPrimary,
+                              ),
+                            ),
+                            if (mood.notes.isNotEmpty)
+                              Text(
+                                mood.notes,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: AppTheme.textSecondary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        _formatTime(mood.date),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textTertiary,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              ),
+            ],
+          ),
       ],
     );
   }
 
-  Widget _buildExcitingItem(String title, String amount, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              icon,
-              color: color,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Text(
-            amount,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWeeklyGoalChart() {
+  Widget _buildQuickActions() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Weekly goal',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            Text(
-              '\$218,325',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Text(
-          '5 habits',
+        const Text(
+          'Quick Actions',
           style: TextStyle(
-            color: Colors.white.withOpacity(0.6),
-            fontSize: 14,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.textPrimary,
           ),
         ),
-        const SizedBox(height: 20),
-        
-        // Chart bars
+        const SizedBox(height: 16),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            _buildChartBar('Sun', 0.3, Colors.blue),
-            _buildChartBar('M', 0.6, Colors.orange),
-            _buildChartBar('Tue', 0.2, Colors.yellow),
-            _buildChartBar('W', 0.8, Colors.purple),
-            _buildChartBar('Thu', 0.4, Colors.orange),
-            _buildChartBar('F', 0.9, Colors.yellow),
-            _buildChartBar('Sat', 0.1, Colors.green),
+            Expanded(
+              child: ActionCard(
+                title: 'Start Workout',
+                subtitle: 'Begin your fitness journey',
+                icon: Icons.play_arrow,
+                color: AppTheme.primaryColor,
+                onTap: () => _navigateToWorkouts(),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: ActionCard(
+                title: 'Log Food',
+                subtitle: 'Track your nutrition',
+                icon: Icons.restaurant,
+                color: AppTheme.successColor,
+                onTap: () => _navigateToFoodLog(),
+              ),
+            ),
           ],
         ),
-        const SizedBox(height: 30),
-        
-        // Action button
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 15),
-          decoration: BoxDecoration(
-            color: Colors.orange,
-            borderRadius: BorderRadius.circular(25),
-          ),
-          child: const Text(
-            'Mio Manbooth for Ropay',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: ActionCard(
+                title: 'Mood Check',
+                subtitle: 'How are you feeling?',
+                icon: Icons.mood,
+                color: AppTheme.accentColor,
+                onTap: () => _navigateToMoodTracker(),
+              ),
             ),
-          ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: ActionCard(
+                title: 'Meditate',
+                subtitle: 'Find your peace',
+                icon: Icons.self_improvement,
+                color: AppTheme.secondaryColor,
+                onTap: () => _navigateToMeditation(),
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 
-  Widget _buildChartBar(String day, double height, Color color) {
-    return Column(
-      children: [
-        Container(
-          width: 20,
-          height: 100 * height,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.bottomCenter,
-              end: Alignment.topCenter,
-              colors: [
-                color,
-                color.withOpacity(0.3),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          day,
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.6),
-            fontSize: 12,
-          ),
-        ),
-      ],
+  String _getTimeOfDay() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Morning';
+    if (hour < 17) return 'Afternoon';
+    return 'Evening';
+  }
+
+  String _formatTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'Just now';
+    }
+  }
+
+  void _navigateToWorkouts() {
+    // Navigate to workouts tab
+    DefaultTabController.of(context)?.animateTo(1);
+  }
+
+  void _navigateToFoodLog() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const FoodLogScreen()),
     );
+  }
+
+  void _navigateToMoodTracker() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const MoodTrackerScreen()),
+    );
+  }
+
+  void _navigateToMeditation() {
+    // Navigate to meditation tab
+    DefaultTabController.of(context)?.animateTo(2);
   }
 }

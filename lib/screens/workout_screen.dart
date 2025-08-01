@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/workout.dart';
 import '../services/workout_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/modern_card.dart';
 
 class WorkoutScreen extends StatefulWidget {
   const WorkoutScreen({super.key});
@@ -57,36 +59,32 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
-        backgroundColor: Color(0xFF1A1D29),
+        backgroundColor: AppTheme.backgroundColor,
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1A1D29),
+      backgroundColor: AppTheme.backgroundColor,
       body: SafeArea(
         child: Column(
           children: [
             // Header
             _buildHeader(),
             
-            // Profile section
-            _buildProfileSection(),
+            // Category filters
+            _buildCategoryFilters(),
             
-            // Content
+            // Workouts list
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Stream creating card
-                    _buildStreamCard(),
-                    const SizedBox(height: 30),
-                    
-                    // Workout list
-                    _buildWorkoutList(),
-                  ],
+              child: RefreshIndicator(
+                onRefresh: _loadData,
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(20),
+                  itemCount: _filteredWorkouts.length,
+                  itemBuilder: (context, index) {
+                    return _buildWorkoutCard(_filteredWorkouts[index]);
+                  },
                 ),
               ),
             ),
@@ -100,312 +98,239 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.arrow_back,
-                color: Colors.white,
-                size: 20,
-              ),
-            ),
+          const Icon(
+            Icons.fitness_center,
+            color: AppTheme.primaryColor,
+            size: 32,
           ),
-          const Text(
-            '@fitmind',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.refresh,
-              color: Colors.white,
-              size: 20,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfileSection() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        children: [
-          // Profile image
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              image: const DecorationImage(
-                image: NetworkImage('https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg'),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          
-          // Profile info card
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-            ),
+          const SizedBox(width: 12),
+          const Expanded(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  '@fitmind',
+                Text(
+                  'Workouts',
                   style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 18,
+                    color: AppTheme.textPrimary,
+                    fontSize: 28,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Stream creating from good life.',
+                Text(
+                  'Choose your fitness adventure',
                   style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 14,
+                    color: AppTheme.textSecondary,
+                    fontSize: 16,
                   ),
-                ),
-                const Text(
-                  'Rectify no.',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                
-                // Action buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.blue[100],
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.thumb_up, color: Colors.blue[600], size: 16),
-                            const SizedBox(width: 5),
-                            Text(
-                              'Sound',
-                              style: TextStyle(
-                                color: Colors.blue[600],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.favorite, color: Colors.grey[600], size: 16),
-                            const SizedBox(width: 5),
-                            Text(
-                              'Chance',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),
           ),
+          IconButton(
+            onPressed: _loadData,
+            icon: const Icon(
+              Icons.refresh,
+              color: AppTheme.textSecondary,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildStreamCard() {
+  Widget _buildCategoryFilters() {
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-        ),
+      height: 50,
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: _categories.length,
+        itemBuilder: (context, index) {
+          final category = _categories[index];
+          final isSelected = _selectedCategory == category;
+          
+          return Container(
+            margin: const EdgeInsets.only(right: 12),
+            child: GestureDetector(
+              onTap: () => _filterWorkouts(category),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppTheme.primaryColor : Colors.white,
+                  borderRadius: BorderRadius.circular(25),
+                  border: Border.all(
+                    color: isSelected ? AppTheme.primaryColor : AppTheme.textTertiary,
+                  ),
+                  boxShadow: isSelected ? [
+                    BoxShadow(
+                      color: AppTheme.primaryColor.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ] : null,
+                ),
+                child: Text(
+                  category,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : AppTheme.textSecondary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
+    );
+  }
+
+  Widget _buildWorkoutCard(Workout workout) {
+    return ModernCard(
+      margin: const EdgeInsets.only(bottom: 16),
+      onTap: () => _startWorkout(workout),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Stream creating from good life.',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
+          // Workout image placeholder
+          Container(
+            width: double.infinity,
+            height: 120,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  _getCategoryColor(workout.category).withOpacity(0.8),
+                  _getCategoryColor(workout.category),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Stack(
+              children: [
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      workout.difficulty,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: _getCategoryColor(workout.category),
+                      ),
+                    ),
+                  ),
+                ),
+                Center(
+                  child: Icon(
+                    Icons.play_circle_filled,
+                    color: Colors.white,
+                    size: 48,
+                  ),
+                ),
+              ],
             ),
           ),
-          const Text(
-            'Rectify no.',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
+          const SizedBox(height: 16),
+          Text(
+            workout.title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textPrimary,
             ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            workout.description,
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppTheme.textSecondary,
+              height: 1.4,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _buildWorkoutStat(Icons.timer, '${workout.durationMinutes} min'),
+              const SizedBox(width: 16),
+              _buildWorkoutStat(Icons.local_fire_department, '${workout.calories} cal'),
+              const SizedBox(width: 16),
+              _buildWorkoutStat(Icons.category, workout.category),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _getCategoryColor(workout.category).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.arrow_forward,
+                  color: _getCategoryColor(workout.category),
+                  size: 20,
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildWorkoutList() {
-    final workoutItems = [
-      {
-        'title': 'Do Year Best Unthane',
-        'subtitle': 'Energetically',
-        'time': '2.3 mins',
-        'icon': Icons.favorite,
-        'color': Colors.red,
-      },
-      {
-        'title': 'Siveri Launch',
-        'subtitle': 'Exact gain the to actly',
-        'action': 'Redrectreila',
-        'color': Colors.blue,
-      },
-      {
-        'title': 'Brave Working',
-        'subtitle': 'Emotionally Ouregy',
-        'action': 'But',
-        'color': Colors.blue,
-      },
-      {
-        'title': 'Solecale Lie Mry',
-        'subtitle': 'Cartwheeling',
-        'action': 'Out',
-        'color': Colors.blue,
-      },
-      {
-        'title': 'Dallyare Danks',
-        'subtitle': '',
-        'action': 'But',
-        'color': Colors.blue,
-      },
-    ];
+  Widget _buildWorkoutStat(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 16,
+          color: AppTheme.textTertiary,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          text,
+          style: const TextStyle(
+            fontSize: 12,
+            color: AppTheme.textSecondary,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
 
-    return Column(
-      children: workoutItems.map((item) => 
-        Container(
-          margin: const EdgeInsets.only(bottom: 15),
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.1),
-            ),
-          ),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 25,
-                backgroundColor: Colors.grey[300],
-                backgroundImage: const NetworkImage('https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg'),
-              ),
-              const SizedBox(width: 15),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item['title'] as String,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    if (item['subtitle'] != null && (item['subtitle'] as String).isNotEmpty)
-                      Text(
-                        item['subtitle'] as String,
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.6),
-                          fontSize: 14,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              if (item['time'] != null)
-                Row(
-                  children: [
-                    Text(
-                      item['time'] as String,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.6),
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Icon(
-                      item['icon'] as IconData,
-                      color: item['color'] as Color,
-                      size: 20,
-                    ),
-                  ],
-                )
-              else if (item['action'] != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: item['color'] as Color,
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Text(
-                    item['action'] as String,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        )
-      ).toList(),
+  Color _getCategoryColor(String category) {
+    switch (category.toLowerCase()) {
+      case 'cardio':
+        return AppTheme.accentColor;
+      case 'strength':
+        return AppTheme.primaryColor;
+      case 'yoga':
+        return AppTheme.secondaryColor;
+      case 'hiit':
+        return AppTheme.warningColor;
+      case 'core':
+        return AppTheme.successColor;
+      default:
+        return AppTheme.primaryColor;
+    }
+  }
+
+  void _startWorkout(Workout workout) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => WorkoutPlayerScreen(workout: workout),
+      ),
     );
   }
 }
@@ -433,11 +358,10 @@ class _WorkoutPlayerScreenState extends State<WorkoutPlayerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.orange[50],
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: Text(widget.workout.title),
-        backgroundColor: Colors.orange[400],
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
       ),
       body: Padding(
@@ -451,21 +375,21 @@ class _WorkoutPlayerScreenState extends State<WorkoutPlayerScreen> {
               width: double.infinity,
               height: 200,
               decoration: BoxDecoration(
-                color: Colors.orange[100],
+                gradient: LinearGradient(
+                  colors: [
+                    AppTheme.primaryColor.withOpacity(0.8),
+                    AppTheme.primaryColor,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.orange.withOpacity(0.3),
-                    spreadRadius: 2,
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                boxShadow: AppTheme.elevatedShadow,
               ),
               child: Icon(
                 Icons.play_circle_filled,
                 size: 80,
-                color: Colors.orange[400],
+                color: Colors.white,
               ),
             ),
             
@@ -473,10 +397,10 @@ class _WorkoutPlayerScreenState extends State<WorkoutPlayerScreen> {
             
             Text(
               widget.workout.title,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Colors.grey[800],
+                color: AppTheme.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -485,9 +409,9 @@ class _WorkoutPlayerScreenState extends State<WorkoutPlayerScreen> {
             
             Text(
               widget.workout.description,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
-                color: Colors.grey[600],
+                color: AppTheme.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -497,10 +421,10 @@ class _WorkoutPlayerScreenState extends State<WorkoutPlayerScreen> {
             // Progress
             Text(
               '${(_currentSeconds ~/ 60).toString().padLeft(2, '0')}:${(_currentSeconds % 60).toString().padLeft(2, '0')} / ${(_totalSeconds ~/ 60).toString().padLeft(2, '0')}:${(_totalSeconds % 60).toString().padLeft(2, '0')}',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
+                color: AppTheme.textPrimary,
               ),
             ),
             
@@ -508,8 +432,9 @@ class _WorkoutPlayerScreenState extends State<WorkoutPlayerScreen> {
             
             LinearProgressIndicator(
               value: _totalSeconds > 0 ? _currentSeconds / _totalSeconds : 0,
-              backgroundColor: Colors.grey[300],
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.orange[400]!),
+              backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+              valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+              borderRadius: BorderRadius.circular(8),
             ),
             
             const SizedBox(height: 40),
@@ -525,7 +450,7 @@ class _WorkoutPlayerScreenState extends State<WorkoutPlayerScreen> {
                     });
                   },
                   icon: const Icon(Icons.replay, size: 32),
-                  color: Colors.grey[600],
+                  color: AppTheme.textSecondary,
                 ),
                 
                 const SizedBox(width: 20),
@@ -535,15 +460,8 @@ class _WorkoutPlayerScreenState extends State<WorkoutPlayerScreen> {
                   height: 80,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.orange[400],
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.orange.withOpacity(0.3),
-                        spreadRadius: 2,
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                    color: AppTheme.primaryColor,
+                    boxShadow: AppTheme.elevatedShadow,
                   ),
                   child: IconButton(
                     onPressed: () {
@@ -570,7 +488,7 @@ class _WorkoutPlayerScreenState extends State<WorkoutPlayerScreen> {
                     _completeWorkout();
                   },
                   icon: const Icon(Icons.stop, size: 32),
-                  color: Colors.grey[600],
+                  color: AppTheme.textSecondary,
                 ),
               ],
             ),
